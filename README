@@ -28,3 +28,5 @@ Depends on:
 - GNU getopt
   http://www.kernel.org/pub/linux/utils/util-linux/
   http://software.frodo.looijaard.name/getopt/
+- oathtool
+  http://www.nongnu.org/oath-toolkit
