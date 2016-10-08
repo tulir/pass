@@ -5,20 +5,20 @@ pass - stores, retrieves, generates, and synchronizes passwords securely
 
 .SH SYNOPSIS
 .B pass
-[ 
+[
 .I COMMAND
-] [ 
+] [
 .I OPTIONS
-]... [ 
+]... [
 .I ARGS
 ]...
 
 .SH DESCRIPTION
 
-.B pass 
-is a very simple password store that keeps passwords inside 
+.B pass
+is a very simple password store that keeps passwords inside
 .BR gpg2 (1)
-encrypted files inside a simple directory tree residing at 
+encrypted files inside a simple directory tree residing at
 .IR ~/.password-store .
 The
 .B pass
@@ -126,6 +126,13 @@ unless \fI--force\fP or \fI-f\fP is specified. If \fI--in-place\fP or \fI-i\fP i
 specified, do not interactively prompt, and only replace the first line of the password
 file with the new generated password, keeping the remainder of the file intact.
 .TP
+\fBotp\fP [ \fI--clip\fP, \fI-c\fP ]\fP
+Generate an one-time password from the secret key in the given pass file.
+If \fI--clip\fP or \fI-c\fP is specified, do not print the password but instead copy
+it to the clipboard using
+.BR xclip (1)
+and then restore the clipboard after 45 (or \fIPASSWORD_STORE_CLIP_TIME\fP) seconds.
+.TP
 \fBrm\fP [ \fI--recursive\fP, \fI-r\fP ] [ \fI--force\fP, \fI-f\fP ] \fIpass-name\fP
 Remove the password named \fIpass-name\fP from the password store. This command is
 alternatively named \fBremove\fP or \fBdelete\fP. If \fI--recursive\fP or \fI-r\fP
@@ -166,36 +173,36 @@ Show version information.
 
 .TP
 Initialize password store
-.B zx2c4@laptop ~ $ pass init Jason@zx2c4.com 
+.B zx2c4@laptop ~ $ pass init Jason@zx2c4.com
 .br
-mkdir: created directory \[u2018]/home/zx2c4/.password-store\[u2019] 
+mkdir: created directory \[u2018]/home/zx2c4/.password-store\[u2019]
 .br
 Password store initialized for Jason@zx2c4.com.
 .TP
 List existing passwords in store
-.B zx2c4@laptop ~ $ pass 
+.B zx2c4@laptop ~ $ pass
 .br
 Password Store
 .br
-\[u251C]\[u2500]\[u2500] Business 
+\[u251C]\[u2500]\[u2500] Business
 .br
-\[u2502]   \[u251C]\[u2500]\[u2500] some-silly-business-site.com 
+\[u2502]   \[u251C]\[u2500]\[u2500] some-silly-business-site.com
 .br
-\[u2502]   \[u2514]\[u2500]\[u2500] another-business-site.net 
+\[u2502]   \[u2514]\[u2500]\[u2500] another-business-site.net
 .br
-\[u251C]\[u2500]\[u2500] Email 
+\[u251C]\[u2500]\[u2500] Email
 .br
-\[u2502]   \[u251C]\[u2500]\[u2500] donenfeld.com 
+\[u2502]   \[u251C]\[u2500]\[u2500] donenfeld.com
 .br
-\[u2502]   \[u2514]\[u2500]\[u2500] zx2c4.com 
+\[u2502]   \[u2514]\[u2500]\[u2500] zx2c4.com
 .br
-\[u2514]\[u2500]\[u2500] France 
+\[u2514]\[u2500]\[u2500] France
 .br
-    \[u251C]\[u2500]\[u2500] bank 
+    \[u251C]\[u2500]\[u2500] bank
 .br
-    \[u251C]\[u2500]\[u2500] freebox 
+    \[u251C]\[u2500]\[u2500] freebox
 .br
-    \[u2514]\[u2500]\[u2500] mobilephone  
+    \[u2514]\[u2500]\[u2500] mobilephone
 .br
 
 .br
@@ -206,65 +213,65 @@ Find existing passwords in store that match .com
 .br
 Search Terms: .com
 .br
-\[u251C]\[u2500]\[u2500] Business 
+\[u251C]\[u2500]\[u2500] Business
 .br
-\[u2502]   \[u251C]\[u2500]\[u2500] some-silly-business-site.com 
+\[u2502]   \[u251C]\[u2500]\[u2500] some-silly-business-site.com
 .br
-\[u2514]\[u2500]\[u2500] Email 
+\[u2514]\[u2500]\[u2500] Email
 .br
-    \[u251C]\[u2500]\[u2500] donenfeld.com 
+    \[u251C]\[u2500]\[u2500] donenfeld.com
 .br
-    \[u2514]\[u2500]\[u2500] zx2c4.com 
+    \[u2514]\[u2500]\[u2500] zx2c4.com
 .br
 
 .br
 Alternatively, "\fBpass search .com\fP".
 .TP
 Show existing password
-.B zx2c4@laptop ~ $ pass Email/zx2c4.com 
+.B zx2c4@laptop ~ $ pass Email/zx2c4.com
 .br
-sup3rh4x3rizmynam3 
+sup3rh4x3rizmynam3
 .TP
 Copy existing password to clipboard
-.B zx2c4@laptop ~ $ pass -c Email/zx2c4.com 
+.B zx2c4@laptop ~ $ pass -c Email/zx2c4.com
 .br
 Copied Email/jason@zx2c4.com to clipboard. Will clear in 45 seconds.
 .TP
 Add password to store
-.B zx2c4@laptop ~ $ pass insert Business/cheese-whiz-factory 
+.B zx2c4@laptop ~ $ pass insert Business/cheese-whiz-factory
 .br
 Enter password for Business/cheese-whiz-factory: omg so much cheese what am i gonna do
 .TP
-Add multiline password to store 
-.B zx2c4@laptop ~ $ pass insert -m Business/cheese-whiz-factory 
+Add multiline password to store
+.B zx2c4@laptop ~ $ pass insert -m Business/cheese-whiz-factory
 .br
-Enter contents of Business/cheese-whiz-factory and press Ctrl+D when finished: 
+Enter contents of Business/cheese-whiz-factory and press Ctrl+D when finished:
 .br
- 
+
 .br
-Hey this is my 
+Hey this is my
 .br
-awesome 
+awesome
 .br
-multi 
+multi
 .br
-line 
+line
 .br
-passworrrrrrrrd. 
+passworrrrrrrrd.
 .br
-^D 
+^D
 .TP
 Generate new password
-.B zx2c4@laptop ~ $ pass generate Email/jasondonenfeld.com 15 
+.B zx2c4@laptop ~ $ pass generate Email/jasondonenfeld.com 15
 .br
-The generated password to Email/jasondonenfeld.com is: 
+The generated password to Email/jasondonenfeld.com is:
 .br
 $(-QF&Q=IN2nFBx
 .TP
 Generate new alphanumeric password
 .B zx2c4@laptop ~ $ pass generate -n Email/jasondonenfeld.com 12
 .br
-The generated password to Email/jasondonenfeld.com is: 
+The generated password to Email/jasondonenfeld.com is:
 .br
 YqFsMkBeO6di
 .TP
@@ -274,9 +281,9 @@ Generate new password and copy it to the clipboard
 Copied Email/jasondonenfeld.com to clipboard. Will clear in 45 seconds.
 .TP
 Remove password from store
-.B zx2c4@laptop ~ $ pass remove Business/cheese-whiz-factory 
+.B zx2c4@laptop ~ $ pass remove Business/cheese-whiz-factory
 .br
-rm: remove regular file \[u2018]/home/zx2c4/.password-store/Business/cheese-whiz-factory.gpg\[u2019]? y 
+rm: remove regular file \[u2018]/home/zx2c4/.password-store/Business/cheese-whiz-factory.gpg\[u2019]? y
 .br
 removed \[u2018]/home/zx2c4/.password-store/Business/cheese-whiz-factory.gpg\[u2019]
 
@@ -285,13 +292,13 @@ Here, we initialize new password store, create a git repository, and then manipu
 .BR git-push (1)
 for more information.
 
-.B zx2c4@laptop ~ $ pass init Jason@zx2c4.com 
+.B zx2c4@laptop ~ $ pass init Jason@zx2c4.com
 .br
-mkdir: created directory \[u2018]/home/zx2c4/.password-store\[u2019] 
+mkdir: created directory \[u2018]/home/zx2c4/.password-store\[u2019]
 .br
-Password store initialized for Jason@zx2c4.com. 
+Password store initialized for Jason@zx2c4.com.
 
-.B zx2c4@laptop ~ $ pass git init 
+.B zx2c4@laptop ~ $ pass git init
 .br
 Initialized empty Git repository in /home/zx2c4/.password-store/.git/
 .br
@@ -301,75 +308,75 @@ Initialized empty Git repository in /home/zx2c4/.password-store/.git/
 .br
  create mode 100644 .gpg-id
 
-.B zx2c4@laptop ~ $ pass git remote add origin kexec.com:pass-store 
+.B zx2c4@laptop ~ $ pass git remote add origin kexec.com:pass-store
 
-.B zx2c4@laptop ~ $ pass generate Amazon/amazonemail@email.com 21 
+.B zx2c4@laptop ~ $ pass generate Amazon/amazonemail@email.com 21
 .br
-mkdir: created directory \[u2018]/home/zx2c4/.password-store/Amazon\[u2019] 
+mkdir: created directory \[u2018]/home/zx2c4/.password-store/Amazon\[u2019]
 .br
 [master 30fdc1e] Added generated password for Amazon/amazonemail@email.com to store.
 .br
-1 file changed, 0 insertions(+), 0 deletions(-) 
+1 file changed, 0 insertions(+), 0 deletions(-)
 .br
-create mode 100644 Amazon/amazonemail@email.com.gpg 
+create mode 100644 Amazon/amazonemail@email.com.gpg
 .br
-The generated password to Amazon/amazonemail@email.com is: 
+The generated password to Amazon/amazonemail@email.com is:
 .br
-<5m,_BrZY`antNDxKN<0A 
+<5m,_BrZY`antNDxKN<0A
 
 .B zx2c4@laptop ~ $ pass git push -u --all
 .br
-Counting objects: 4, done. 
+Counting objects: 4, done.
 .br
-Delta compression using up to 2 threads. 
+Delta compression using up to 2 threads.
 .br
-Compressing objects: 100% (3/3), done. 
+Compressing objects: 100% (3/3), done.
 .br
-Writing objects: 100% (4/4), 921 bytes, done. 
+Writing objects: 100% (4/4), 921 bytes, done.
 .br
-Total 4 (delta 0), reused 0 (delta 0) 
+Total 4 (delta 0), reused 0 (delta 0)
 .br
-To kexec.com:pass-store 
+To kexec.com:pass-store
 .br
-* [new branch]      master -> master 
+* [new branch]      master -> master
 .br
-Branch master set up to track remote branch master from origin. 
+Branch master set up to track remote branch master from origin.
 
-.B zx2c4@laptop ~ $ pass insert Amazon/otheraccount@email.com 
+.B zx2c4@laptop ~ $ pass insert Amazon/otheraccount@email.com
 .br
-Enter password for Amazon/otheraccount@email.com: som3r3a11yb1gp4ssw0rd!!88** 
+Enter password for Amazon/otheraccount@email.com: som3r3a11yb1gp4ssw0rd!!88**
 .br
-[master b9b6746] Added given password for Amazon/otheraccount@email.com to store. 
+[master b9b6746] Added given password for Amazon/otheraccount@email.com to store.
 .br
-1 file changed, 0 insertions(+), 0 deletions(-) 
+1 file changed, 0 insertions(+), 0 deletions(-)
 .br
-create mode 100644 Amazon/otheraccount@email.com.gpg 
+create mode 100644 Amazon/otheraccount@email.com.gpg
 
-.B zx2c4@laptop ~ $ pass rm Amazon/amazonemail@email.com 
+.B zx2c4@laptop ~ $ pass rm Amazon/amazonemail@email.com
 .br
-rm: remove regular file \[u2018]/home/zx2c4/.password-store/Amazon/amazonemail@email.com.gpg\[u2019]? y 
+rm: remove regular file \[u2018]/home/zx2c4/.password-store/Amazon/amazonemail@email.com.gpg\[u2019]? y
 .br
-removed \[u2018]/home/zx2c4/.password-store/Amazon/amazonemail@email.com.gpg\[u2019] 
+removed \[u2018]/home/zx2c4/.password-store/Amazon/amazonemail@email.com.gpg\[u2019]
 .br
-rm 'Amazon/amazonemail@email.com.gpg' 
+rm 'Amazon/amazonemail@email.com.gpg'
 .br
-[master 288b379] Removed Amazon/amazonemail@email.com from store. 
+[master 288b379] Removed Amazon/amazonemail@email.com from store.
 .br
-1 file changed, 0 insertions(+), 0 deletions(-) 
+1 file changed, 0 insertions(+), 0 deletions(-)
 .br
-delete mode 100644 Amazon/amazonemail@email.com.gpg 
+delete mode 100644 Amazon/amazonemail@email.com.gpg
 
 .B zx2c4@laptop ~ $ pass git push
 .br
-Counting objects: 9, done. 
+Counting objects: 9, done.
 .br
-Delta compression using up to 2 threads. 
+Delta compression using up to 2 threads.
 .br
-Compressing objects: 100% (5/5), done. 
+Compressing objects: 100% (5/5), done.
 .br
-Writing objects: 100% (7/7), 1.25 KiB, done. 
+Writing objects: 100% (7/7), 1.25 KiB, done.
 .br
-Total 7 (delta 0), reused 0 (delta 0) 
+Total 7 (delta 0), reused 0 (delta 0)
 .br
 To kexec.com:pass-store
 
@@ -394,7 +401,7 @@ Overrides the default password storage directory.
 .I PASSWORD_STORE_KEY
 Overrides the default gpg key identification set by \fBinit\fP. Keys must not
 contain spaces and thus use of the hexidecimal key signature is recommended.
-Multiple keys may be specified separated by spaces. 
+Multiple keys may be specified separated by spaces.
 .TP
 .I PASSWORD_STORE_GIT
 Overrides the default root of the git repository, which is helpful if
