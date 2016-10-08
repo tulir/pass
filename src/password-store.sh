@@ -595,11 +595,11 @@ cmd_otp() {
 		local seconds=$(expr 30 - $(date +%s) % 30)
 
 		if [[ $clip -eq 0 ]]; then
-			echo "OTP key: $otpkey"
+			echo "One-time password: $otpkey"
 		else
-			clip "$otpkey" "OTP key of $path"
+			clip "$otpkey" "OTP for $path"
 		fi
-		echo "The key will expire in $seconds seconds"
+		echo "The password will expire in $seconds seconds"
 	else
 		die "Error: $path is not in the password store."
 	fi
