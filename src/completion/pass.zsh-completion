@@ -84,6 +84,12 @@ _pass () {
 				)
 				_describe -t commands 'pass git' subcommands
 				;;
+			otp)
+				_arguments : \
+					"-c[copy password to the clipboard]" \
+					"--clip[copy password to the clipboard]"
+				_pass_complete_entries_with_subdirs
+				;;
 			show|*)
 				_pass_cmd_show
 				;;

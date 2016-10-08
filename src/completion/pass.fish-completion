@@ -114,5 +114,9 @@ complete -c $PROG -f -A -n '__fish_pass_uses_command git' -a 'push' -d 'Push cha
 complete -c $PROG -f -A -n '__fish_pass_uses_command git' -a 'pull' -d 'Pull changes from remote repo'
 complete -c $PROG -f -A -n '__fish_pass_uses_command git' -a 'log' -d 'View changelog'
 
+
+complete -c $PROG -f -A -n '__fish_pass_needs_command' -a otp -d 'Command: generate a totp key'
+complete -c $PROG -f -A -n '__fish_pass_uses_command otp' -s c -l clip -d 'Put the totp key in clipboard'
+
 complete -c $PROG -f -A -n '__fish_pass_needs_command' -a find -d 'Command: find a password file or directory matching pattern'
 complete -c $PROG -f -A -n '__fish_pass_needs_command' -a grep -d 'Command: search inside of decrypted password files for matching pattern'
