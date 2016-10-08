@@ -184,6 +184,7 @@ tmpdir() {
 
 }
 GETOPT="getopt"
+OATH="oathtool"
 SHRED="shred -f -z"
 
 source "$(dirname "$0")/platform/$(uname | cut -d _ -f 1 | tr '[:upper:]' '[:lower:]').sh" 2>/dev/null # PLATFORM_FUNCTION_FILE
@@ -571,6 +572,39 @@ cmd_git() {
 	fi
 }
 
+cmd_otp() {
+	local opts
+	opts="$($GETOPT -o c:: -l clip:: -n "$PROGRAM" -- "$@")"
+	local err=$?
+	eval set -- "$opts"
+	while true; do case $1 in
+		-c|--clip) clip=1; shift 2 ;;
+		--) shift; break ;;
+	esac done
+
+	[[ $err -ne 0 ]] && die "Usage: $PROGRAM $COMMAND [--clip,-c] [pass-name]"
+
+	local path="$1"
+	local passfile="$PREFIX/$path.gpg"
+	check_sneaky_paths "$path"
+	if [[ -f $passfile ]]; then
+		local pass="$($GPG -d "${GPG_OPTS[@]}" "$passfile" | grep "OTP: " | sed "s/^.*: //")"
+		[[ -n $pass ]] || die "There is no password to read the OTP secret key from"
+
+		local otpkey=$($OATH --base32 --totp "$pass")
+		local seconds=$(expr 30 - $(date +%s) % 30)
+
+		if [[ $clip -eq 0 ]]; then
+			echo "OTP key: $otpkey"
+		else
+			clip "$otpkey" "OTP key of $path"
+		fi
+		echo "The key will expire in $seconds seconds"
+	else
+		die "Error: $path is not in the password store."
+	fi
+}
+
 #
 # END subcommand functions
 #
@@ -592,6 +626,7 @@ case "$1" in
 	rename|mv) shift;		cmd_copy_move "move" "$@" ;;
 	copy|cp) shift;			cmd_copy_move "copy" "$@" ;;
 	git) shift;			cmd_git "$@" ;;
+	otp) shift;			cmd_otp "$@" ;;
 	*) COMMAND="show";		cmd_show "$@" ;;
 esac
 exit 0
