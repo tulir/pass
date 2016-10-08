@@ -589,7 +589,7 @@ cmd_otp() {
 	check_sneaky_paths "$path"
 	if [[ -f $passfile ]]; then
 		local pass="$($GPG -d "${GPG_OPTS[@]}" "$passfile" | grep "OTP: " | sed "s/^.*: //")"
-		[[ -n $pass ]] || die "There is no password to read the OTP secret key from"
+		[[ -n $pass ]] || die "Error: No OTP key found from $path."
 
 		local otpkey=$($OATH --base32 --totp "$pass")
 		local seconds=$(expr 30 - $(date +%s) % 30)
