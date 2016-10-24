@@ -126,12 +126,13 @@ unless \fI--force\fP or \fI-f\fP is specified. If \fI--in-place\fP or \fI-i\fP i
 specified, do not interactively prompt, and only replace the first line of the password
 file with the new generated password, keeping the remainder of the file intact.
 .TP
-\fBotp\fP [ \fI--clip\fP, \fI-c\fP ]\fP
+\fBotp\fP [ \fI--clip\fP, \fI-c\fP ] [ \fI--raw\fP, \fI-r\fP ]\fP
 Generate an one-time password from the secret key in the given pass file.
 If \fI--clip\fP or \fI-c\fP is specified, do not print the password but instead copy
-it to the clipboard using
+it to the clipboard using.
 .BR xclip (1)
 and then restore the clipboard after 45 (or \fIPASSWORD_STORE_CLIP_TIME\fP) seconds.
+If \fI--raw\fP or \fI-r\fP is specified, print output without any extra text.
 .TP
 \fBrm\fP [ \fI--recursive\fP, \fI-r\fP ] [ \fI--force\fP, \fI-f\fP ] \fIpass-name\fP
 Remove the password named \fIpass-name\fP from the password store. This command is

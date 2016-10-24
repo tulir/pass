@@ -121,7 +121,7 @@ _pass()
 				COMPREPLY+=($(compgen -W "init push pull config log reflog rebase" -- ${cur}))
 				;;
 			otp)
-				COMPREPLY+=($(compgen -W "-c --clip" -- ${cur}))
+				COMPREPLY+=($(compgen -W "-c --clip -r --raw" -- ${cur}))
 				_pass_complete_entries
 				;;
 		esac

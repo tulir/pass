@@ -574,11 +574,12 @@ cmd_git() {
 
 cmd_otp() {
 	local opts
-	opts="$($GETOPT -o c:: -l clip:: -n "$PROGRAM" -- "$@")"
+	opts="$($GETOPT -o c,r -l clip,raw -n "$PROGRAM" -- "$@")"
 	local err=$?
 	eval set -- "$opts"
 	while true; do case $1 in
-		-c|--clip) clip=1; shift 2 ;;
+		-c|--clip) clip=1; shift ;;
+		-r|--raw) raw=1; shift ;;
 		--) shift; break ;;
 	esac done
 
@@ -595,11 +596,18 @@ cmd_otp() {
 		local seconds=$(expr 30 - $(date +%s) % 30)
 
 		if [[ $clip -eq 0 ]]; then
-			echo "One-time password: $otpkey"
+			if [[ $raw -eq 0 ]]; then
+				echo -n "One-time password: "
+			fi
+			echo $otpkey
 		else
 			clip "$otpkey" "OTP for $path"
 		fi
-		echo "The password will expire in $seconds seconds"
+		if [[ $raw -eq 0 ]]; then
+			echo "The password will expire in $seconds seconds"
+		else
+			echo $seconds
+		fi
 	else
 		die "Error: $path is not in the password store."
 	fi

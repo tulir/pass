@@ -87,7 +87,9 @@ _pass () {
 			otp)
 				_arguments : \
 					"-c[copy password to the clipboard]" \
-					"--clip[copy password to the clipboard]"
+					"--clip[copy password to the clipboard]" \
+					"-r[print raw output]" \
+					"--raw[print raw output]"
 				_pass_complete_entries_with_subdirs
 				;;
 			show|*)
