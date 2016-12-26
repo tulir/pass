@@ -126,6 +126,8 @@ _pass_cmd_show () {
 	_arguments : \
 		"-c[put it on the clipboard]" \
 		"--clip[put it on the clipboard]"
+		"-t[type it out]" \
+		"--type[type it out]"
 	_pass_complete_entries
 }
 _pass_complete_entries_helper () {

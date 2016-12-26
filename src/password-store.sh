@@ -15,6 +15,8 @@ which gpg2 &>/dev/null && GPG="gpg2"
 PREFIX="${PASSWORD_STORE_DIR:-$HOME/.password-store}"
 X_SELECTION="${PASSWORD_STORE_X_SELECTION:-clipboard}"
 CLIP_TIME="${PASSWORD_STORE_CLIP_TIME:-45}"
+TYPE_DELAY="${PASSWORD_STORE_TYPE_DELAY:-100}"
+TYPE_WAIT="${PASSWORD_STORE_TYPE_WAIT:-3}"
 GENERATED_LENGTH="${PASSWORD_STORE_GENERATED_LENGTH:-25}"
 
 export GIT_DIR="${PASSWORD_STORE_GIT:-$PREFIX}/.git"
@@ -128,6 +130,14 @@ check_sneaky_paths() {
 # BEGIN platform definable
 #
 
+type_password() {
+	echo "Typing $2 in $TYPE_WAIT seconds with "$TYPE_DELAY"ms delay."
+	(
+		sleep $TYPE_WAIT
+		$XDO type --delay $TYPE_DELAY "$1"
+	) & disown
+}
+
 clip() {
 	# This base64 business is because bash cannot store binary data in a shell
 	# variable. Specifically, it cannot store nulls nor (non-trivally) store
@@ -185,6 +195,7 @@ tmpdir() {
 }
 GETOPT="getopt"
 OATH="oathtool"
+XDO="xdotool"
 SHRED="shred -f -z"
 
 source "$(dirname "$0")/platform/$(uname | cut -d _ -f 1 | tr '[:upper:]' '[:lower:]').sh" 2>/dev/null # PLATFORM_FUNCTION_FILE
@@ -296,28 +307,39 @@ cmd_init() {
 }
 
 cmd_show() {
-	local opts clip_location clip=0
-	opts="$($GETOPT -o c:: -l clip:: -n "$PROGRAM" -- "$@")"
+	local opts clip_location clip=0 type_location typ=0
+	opts="$($GETOPT -o c:: -o t:: -l clip:: -l type:: -n "$PROGRAM" -- "$@")"
 	local err=$?
 	eval set -- "$opts"
 	while true; do case $1 in
 		-c|--clip) clip=1; clip_location="${2:-1}"; shift 2 ;;
+		-t|--type) typ=1; type_location="${2:-1}"; shift 2 ;;
 		--) shift; break ;;
 	esac done
 
-	[[ $err -ne 0 ]] && die "Usage: $PROGRAM $COMMAND [--clip[=line-number],-c[line-number]] [pass-name]"
+	[[ $err -ne 0 ]] && die "Usage: $PROGRAM $COMMAND [--clip[=line-number],-c[line-number]] [--type[=line-number],-t[line-number]] [pass-name]"
 
 	local path="$1"
 	local passfile="$PREFIX/$path.gpg"
 	check_sneaky_paths "$path"
 	if [[ -f $passfile ]]; then
-		if [[ $clip -eq 0 ]]; then
+		if [[ $clip -eq 0 && $typ -eq 0 ]]; then
 			$GPG -d "${GPG_OPTS[@]}" "$passfile" || exit $?
 		else
-			[[ $clip_location =~ ^[0-9]+$ ]] || die "Clip location '$clip_location' is not a number."
-			local pass="$($GPG -d "${GPG_OPTS[@]}" "$passfile" | tail -n +${clip_location} | head -n 1)"
-			[[ -n $pass ]] || die "There is no password to put on the clipboard at line ${clip_location}."
-			clip "$pass" "$path"
+			[[ $clip -eq 0 || $clip_location =~ ^[0-9]+$ ]] || die "Clip location '$clip_location' is not a number."
+			[[ $typ -eq 0 || $type_location =~ ^[0-9]+$ ]] || die "Type location '$typ_location' is not a number."
+			local pass="$($GPG -d "${GPG_OPTS[@]}" "$passfile")"
+			[[ -n $pass ]] || die "There is no password."
+			if [[ $clip -ne 0 ]]; then
+				pass="$(echo "$pass" | tail -n +${clip_location} | head -n 1)"
+				[[ -n $pass ]] || die "There is no password to put on the clipboard at line ${clip_location}."
+				clip "$pass" "$path"
+			fi
+			if [[ $typ -ne 0 ]]; then
+				pass="$(echo "$pass" | tail -n +${type_location} | head -n 1)"
+				[[ -n $pass ]] || die "There is no password to type at line ${clip_location}."
+				type_password "$pass" "$path"
+			fi
 		fi
 	elif [[ -d $PREFIX/$path ]]; then
 		if [[ -z $path ]]; then

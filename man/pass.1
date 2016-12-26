@@ -86,12 +86,18 @@ List names of passwords inside the tree that match \fIpass-names\fP by using the
 .BR tree (1)
 program. This command is alternatively named \fBsearch\fP.
 .TP
-\fBshow\fP [ \fI--clip\fP[=\fIline-number\fP], \fI-c\fP[\fIline-number\fP] ] \fIpass-name\fP
+\fBshow\fP [ \fI--clip\fP[=\fIline-number\fP], \fI-c\fP[\fIline-number\fP] ] [ \fI--type\fP[=\fIline-number\fP], \fI-t\fP[\fIline-number\fP] ] \fIpass-name\fP
 Decrypt and print a password named \fIpass-name\fP. If \fI--clip\fP or \fI-c\fP
 is specified, do not print the password but instead copy the first (or otherwise specified)
 line to the clipboard using
 .BR xclip (1)
 and then restore the clipboard after 45 (or \fIPASSWORD_STORE_CLIP_TIME\fP) seconds.
+If \fI--type\fP or \fI-t\fP is specified, type the first (or otherwise specified)
+line out using
+.BR xdotool (1)
+after 3 (or \fIPASSWORD_STORE_TYPE_WAIT\fP) seconds with a 100 (or \fIPASSWORD_STORE_TYPE_DELAY\fP)
+millisecond delay between keystrokes.
+Clipping and typing may be used simultaneously with independent line choices.
 .TP
 \fBinsert\fP [ \fI--echo\fP, \fI-e\fP | \fI--multiline\fP, \fI-m\fP ] [ \fI--force\fP, \fI-f\fP ] \fIpass-name\fP
 Insert a new password into the password store called \fIpass-name\fP. This will
