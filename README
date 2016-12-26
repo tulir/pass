@@ -29,4 +29,6 @@ Depends on:
   http://www.kernel.org/pub/linux/utils/util-linux/
   http://software.frodo.looijaard.name/getopt/
 - oathtool
-  http://www.nongnu.org/oath-toolkit
+  http://www.nongnu.org/oath-toolkit/
+- xdotool
+  http://www.semicomplete.com/projects/xdotool/
