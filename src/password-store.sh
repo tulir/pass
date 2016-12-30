@@ -308,7 +308,7 @@ cmd_init() {
 
 cmd_show() {
 	local opts clip_location clip=0 type_location typ=0
-	opts="$($GETOPT -o c:: -o t:: -l clip:: -l type:: -n "$PROGRAM" -- "$@")"
+	opts="$($GETOPT -o c::,t:: -l clip::,type:: -n "$PROGRAM" -- "$@")"
 	local err=$?
 	eval set -- "$opts"
 	while true; do case $1 in
