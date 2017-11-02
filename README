@@ -21,8 +21,6 @@ Depends on:
   http://www.git-scm.com/
 - xclip
   http://sourceforge.net/projects/xclip/
-- pwgen
-  http://sourceforge.net/projects/pwgen/
 - tree >= 1.7.0
   http://mama.indstate.edu/users/ice/tree/
 - GNU getopt
@@ -32,3 +30,5 @@ Depends on:
   http://www.nongnu.org/oath-toolkit/
 - xdotool
   http://www.semicomplete.com/projects/xdotool/
+- qrencode
+  https://fukuchi.org/works/qrencode/
