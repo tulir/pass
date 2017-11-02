@@ -275,7 +275,7 @@ cmd_usage() {
 	        List passwords.
 	    $PROGRAM find pass-names...
 	    	List passwords that match pass-names.
-	    $PROGRAM [show] [--clip[=line-number],-c[line-number]] pass-name
+	    $PROGRAM [show] [--clip[=line-id],-c[line-id]] [--qrcode[=line-id]] [--type[=line-id],-t[line-id]] [pass-name]
 	        Show existing password and optionally put it on the clipboard.
 	        If put on the clipboard, it will be cleared in $CLIP_TIME seconds.
 	    $PROGRAM grep search-string
@@ -357,7 +357,7 @@ cmd_init() {
 }
 
 cmd_show() {
-	local opts selected_line clip=0 typeout=0 qrencode=0
+	local opts clip=0 typeout=0 qrencode=0 selected_line=1
 	opts="$($GETOPT -o q::c::t:: -l qrcode::,clip::,type:: -n "$PROGRAM" -- "$@")"
 	local err=$?
 	eval set -- "$opts"
@@ -368,7 +368,7 @@ cmd_show() {
 		--) shift; break ;;
 	esac done
 
-	[[ $err -ne 0 || ( $(( qrcode + clip + typeout )) -gt 1 ) ]] && die "Usage: $PROGRAM $COMMAND [--clip[=line-number],-c[line-number]] [--qrcode[=line-number]] [--type[=line-number],-t[line-number]] [pass-name]"
+	[[ $err -ne 0 || ( $(( qrcode + clip + typeout )) -gt 1 ) ]] && die "Usage: $PROGRAM $COMMAND [--clip[=line-id],-c[line-id]] [--qrcode[=line-id]] [--type[=line-id],-t[line-id]] [pass-name]"
 
 	local path="$1"
 	local passfile="$PREFIX/$path.gpg"
@@ -377,17 +377,30 @@ cmd_show() {
 		if [[ $clip -eq 0 && $qrcode -eq 0 && $typeout -eq 0 ]]; then
 			$GPG -d "${GPG_OPTS[@]}" "$passfile" || exit $?
 		else
-			[[ $clip -eq 0 || $selected_line =~ ^[0-9]+$ ]] || die "Selected line '$selected_line' is not a number."
-#			local pass="$($GPG -d "${GPG_OPTS[@]}" "$passfile")"
-			local pass="$($GPG -d "${GPG_OPTS[@]}" "$passfile" | tail -n +${selected_line} | head -n 1)"
+			local pass="$($GPG -d "${GPG_OPTS[@]}" "$passfile")"
+			[[ -n $pass ]] || die "Failed to read password from $passfile"
+
+			local linenumber="" linename="password"
+			if [[ $selected_line =~ ^[0-9]+$ ]]; then
+				# Line is a number, get that line.
+				pass="$(echo "$pass" | tail -n +$selected_line | head -n 1)"
+				linenumber=" on line $selected_line"
+			else
+				# Line is a word, use it as the line key and get the value.
+				pass="$(echo "$pass" | grep -i ^$selected_line | head -n 1)"
+				linename="$selected_line"
+				path="$(echo "$pass" | sed "s/: .*//" | awk '{print tolower($0)}') of $path"
+				pass="$(echo "$pass" | sed "s/^.*: //")"
+			fi
+
 			if [[ $clip -eq 1 ]]; then
-				[[ -n $pass ]] || die "There is no password to put on the clipboard at line ${selected_line}."
+				[[ -n $pass ]] || die "There is no $linename to put on the clipboard$linenumber."
 				clip "$pass" "$path"
 			elif [[ $typeout -eq 1 ]]; then
-				[[ -n $pass ]] || die "There is no password to type at line ${selected_line}."
+				[[ -n $pass ]] || die "There is no $linename to type$linenumber."
 				type_password "$pass" "$path"
 			elif [[ $qrcode -eq 1 ]]; then
-				[[ -n $pass ]] || die "There is no password to convert to a QR code at line ${selected_line}."
+				[[ -n $pass ]] || die "There is no $linename to convert to a QR code$linenumber."
 				qrcode "$pass" "$path"
 			fi
 		fi
