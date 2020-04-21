@@ -10,7 +10,7 @@ canonicalize_gpg_keys() {
 	$GPG --list-keys --with-colons "$@" | sed -n 's/sub:[^:]*:[^:]*:[^:]*:\([^:]*\):[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[a-zA-Z]*e[a-zA-Z]*:.*/\1/p' | LC_ALL=C sort -u
 }
 gpg_keys_from_encrypted_file() {
-	$GPG -v --no-secmem-warning --no-permission-warning --decrypt --list-only --keyid-format long "$1" 2>&1 | cut -d ' ' -f 5 | LC_ALL=C sort -u
+	$GPG -v --no-secmem-warning --no-permission-warning --decrypt --list-only --keyid-format long "$1" 2>&1 | grep "public key is" | cut -d ' ' -f 5 | LC_ALL=C sort -u
 }
 gpg_keys_from_group() {
 	local output="$($GPG --list-config --with-colons | sed -n "s/^cfg:group:$1:\\(.*\\)/\\1/p" | head -n 1)"
@@ -85,6 +85,15 @@ test_expect_success 'Reencryption subfolder multiple keys, move, deinit' '
 	[[ $(canonicalize_gpg_keys $KEY1 $KEY3) == "$(gpg_keys_from_encrypted_file "$PASSWORD_STORE_DIR/anotherfolder2/anotherfolder/cred1.gpg")" ]] &&
 	"$PASS" init -p anotherfolder2/anotherfolder "" &&
 	[[ $(canonicalize_gpg_keys $KEY3 $KEY4 $KEY2) == "$(gpg_keys_from_encrypted_file "$PASSWORD_STORE_DIR/anotherfolder2/anotherfolder/cred1.gpg")" ]]
+'
+
+test_expect_success 'Reencryption skips links' '
+	ln -s "$PASSWORD_STORE_DIR/folder/cred1.gpg" "$PASSWORD_STORE_DIR/folder/linked_cred.gpg" &&
+	[[ -L $PASSWORD_STORE_DIR/folder/linked_cred.gpg ]] &&
+	git add "$PASSWORD_STORE_DIR/folder/linked_cred.gpg" &&
+	git commit "$PASSWORD_STORE_DIR/folder/linked_cred.gpg" -m "Added linked cred" &&
+	"$PASS" init -p folder $KEY3 &&
+	[[ -L $PASSWORD_STORE_DIR/folder/linked_cred.gpg ]]
 '
 
 #TODO: test with more varieties of move and copy!

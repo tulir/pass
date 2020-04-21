@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Copyright (C) 2012 - 2017 Jason A. Donenfeld <Jason@zx2c4.com>. All Rights Reserved.
+# Copyright (C) 2012 - 2018 Jason A. Donenfeld <Jason@zx2c4.com>. All Rights Reserved.
 # This file is licensed under the GPLv2+. Please see COPYING for more information.
 
 umask "${PASSWORD_STORE_UMASK:-077}"
@@ -19,9 +19,10 @@ CLIP_TIME="${PASSWORD_STORE_CLIP_TIME:-45}"
 TYPE_DELAY="${PASSWORD_STORE_TYPE_DELAY:-100}"
 TYPE_WAIT="${PASSWORD_STORE_TYPE_WAIT:-3}"
 GENERATED_LENGTH="${PASSWORD_STORE_GENERATED_LENGTH:-25}"
-CHARACTER_SET="${PASSWORD_STORE_CHARACTER_SET:-[:graph:]}"
+CHARACTER_SET="${PASSWORD_STORE_CHARACTER_SET:-[:punct:][:alnum:]}"
 CHARACTER_SET_NO_SYMBOLS="${PASSWORD_STORE_CHARACTER_SET_NO_SYMBOLS:-[:alnum:]}"
 
+unset GIT_DIR GIT_WORK_TREE GIT_NAMESPACE GIT_INDEX_FILE GIT_INDEX_VERSION GIT_OBJECT_DIRECTORY GIT_COMMON_DIR
 export GIT_CEILING_DIRECTORIES="$PREFIX/.."
 
 #
@@ -60,7 +61,7 @@ die() {
 verify_file() {
 	[[ -n $PASSWORD_STORE_SIGNING_KEY ]] || return 0
 	[[ -f $1.sig ]] || die "Signature for $1 does not exist."
-	local fingerprints="$($GPG $PASSWORD_STORE_GPG_OPTS --verify --status-fd=1 "$1.sig" "$1" 2>/dev/null | sed -n 's/\[GNUPG:\] VALIDSIG \([A-F0-9]\{40\}\) .* \([A-F0-9]\{40\}\)$/\1\n\2/p')"
+	local fingerprints="$($GPG $PASSWORD_STORE_GPG_OPTS --verify --status-fd=1 "$1.sig" "$1" 2>/dev/null | sed -n 's/^\[GNUPG:\] VALIDSIG \([A-F0-9]\{40\}\) .* \([A-F0-9]\{40\}\)$/\1\n\2/p')"
 	local fingerprint found=0
 	for fingerprint in $PASSWORD_STORE_SIGNING_KEY; do
 		[[ $fingerprint =~ ^[A-F0-9]{40}$ ]] || continue
@@ -110,6 +111,7 @@ reencrypt_path() {
 	local prev_gpg_recipients="" gpg_keys="" current_keys="" index passfile
 	local groups="$($GPG $PASSWORD_STORE_GPG_OPTS --list-config --with-colons | grep "^cfg:group:.*")"
 	while read -r -d "" passfile; do
+		[[ -L $passfile ]] && continue
 		local passfile_dir="${passfile%/*}"
 		passfile_dir="${passfile_dir#$PREFIX}"
 		passfile_dir="${passfile_dir#/}"
@@ -123,9 +125,9 @@ reencrypt_path() {
 				local group="$(sed -n "s/^cfg:group:$(sed 's/[\/&]/\\&/g' <<<"${GPG_RECIPIENTS[$index]}"):\\(.*\\)\$/\\1/p" <<<"$groups" | head -n 1)"
 				[[ -z $group ]] && continue
 				IFS=";" eval 'GPG_RECIPIENTS+=( $group )' # http://unix.stackexchange.com/a/92190
-				unset GPG_RECIPIENTS[$index]
+				unset "GPG_RECIPIENTS[$index]"
 			done
-			gpg_keys="$($GPG $PASSWORD_STORE_GPG_OPTS --list-keys --with-colons "${GPG_RECIPIENTS[@]}" | sed -n 's/sub:[^:]*:[^:]*:[^:]*:\([^:]*\):[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[a-zA-Z]*e[a-zA-Z]*:.*/\1/p' | LC_ALL=C sort -u)"
+			gpg_keys="$($GPG $PASSWORD_STORE_GPG_OPTS --list-keys --with-colons "${GPG_RECIPIENTS[@]}" | sed -n 's/^sub:[^idr:]*:[^:]*:[^:]*:\([^:]*\):[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[a-zA-Z]*e[a-zA-Z]*:.*/\1/p' | LC_ALL=C sort -u)"
 		fi
 		current_keys="$(LC_ALL=C $GPG $PASSWORD_STORE_GPG_OPTS -v --no-secmem-warning --no-permission-warning --decrypt --list-only --keyid-format long "$passfile" 2>&1 | sed -n 's/^gpg: public key is \([A-F0-9]\+\)$/\1/p' | LC_ALL=C sort -u)"
 
@@ -161,17 +163,33 @@ type_password() {
 }
 
 clip() {
+	if [[ -n $WAYLAND_DISPLAY ]]; then
+		local copy_cmd=( wl-copy )
+		local paste_cmd=( wl-paste -n )
+		if [[ $X_SELECTION == primary ]]; then
+			copy_cmd+=( --primary )
+			paste_cmd+=( --primary )
+		fi
+		local display_name="$WAYLAND_DISPLAY"
+	elif [[ -n $DISPLAY ]]; then
+		local copy_cmd=( xclip -selection "$X_SELECTION" )
+		local paste_cmd=( xclip -o -selection "$X_SELECTION" )
+		local display_name="$DISPLAY"
+	else
+		die "Error: No X11 or Wayland display detected"
+	fi
+	local sleep_argv0="password store sleep on display $display_name"
+
 	# This base64 business is because bash cannot store binary data in a shell
 	# variable. Specifically, it cannot store nulls nor (non-trivally) store
 	# trailing new lines.
-	local sleep_argv0="password store sleep on display $DISPLAY"
 	pkill -f "^$sleep_argv0" 2>/dev/null && sleep 0.5
-	local before="$(xclip -o -selection "$X_SELECTION" 2>/dev/null | base64)"
-	echo -n "$1" | xclip -selection "$X_SELECTION" || die "Error: Could not copy data to the clipboard"
+	local before="$("${paste_cmd[@]}" 2>/dev/null | $BASE64)"
+	echo -n "$1" | "${copy_cmd[@]}" || die "Error: Could not copy data to the clipboard"
 	(
 		( exec -a "$sleep_argv0" bash <<<"trap 'kill %1' TERM; sleep '$CLIP_TIME' & wait" )
-		local now="$(xclip -o -selection "$X_SELECTION" | base64)"
-		[[ $now != $(echo -n "$1" | base64) ]] && before="$now"
+		local now="$("${paste_cmd[@]}" | $BASE64)"
+		[[ $now != $(echo -n "$1" | $BASE64) ]] && before="$now"
 
 		# It might be nice to programatically check to see if klipper exists,
 		# as well as checking for other common clipboard managers. But for now,
@@ -182,8 +200,8 @@ clip() {
 		# so we axe it here:
 		qdbus org.kde.klipper /klipper org.kde.klipper.klipper.clearClipboardHistory &>/dev/null
 
-		echo "$before" | base64 -d | xclip -selection "$X_SELECTION"
-	) 2>/dev/null & disown
+		echo "$before" | $BASE64 -d | "${copy_cmd[@]}"
+	) >/dev/null 2>&1 & disown
 	echo "Copied $2 to clipboard. Will clear in $CLIP_TIME seconds."
 }
 
@@ -213,7 +231,7 @@ tmpdir() {
 		remove_tmpfile() {
 			rm -rf "$SECURE_TMPDIR"
 		}
-		trap remove_tmpfile INT TERM EXIT
+		trap remove_tmpfile EXIT
 	else
 		[[ $warn -eq 1 ]] && yesno "$(cat <<-_EOF
 		Your system does not have /dev/shm, which means that it may
@@ -228,7 +246,7 @@ tmpdir() {
 			find "$SECURE_TMPDIR" -type f -exec $SHRED {} +
 			rm -rf "$SECURE_TMPDIR"
 		}
-		trap shred_tmpfile INT TERM EXIT
+		trap shred_tmpfile EXIT
 	fi
 
 }
@@ -236,6 +254,7 @@ GETOPT="getopt"
 OATH="oathtool"
 XDO="xdotool"
 SHRED="shred -f -z"
+BASE64="base64"
 
 source "$(dirname "$0")/platform/$(uname | cut -d _ -f 1 | tr '[:upper:]' '[:lower:]').sh" 2>/dev/null # PLATFORM_FUNCTION_FILE
 
@@ -253,7 +272,7 @@ cmd_version() {
 	============================================
 	= pass: the standard unix password manager =
 	=                                          =
-	=                  v1.7.1                  =
+	=                  v1.7.3                  =
 	=                                          =
 	=             Jason A. Donenfeld           =
 	=               Jason@zx2c4.com            =
@@ -278,7 +297,7 @@ cmd_usage() {
 	    $PROGRAM [show] [--clip[=line-id],-c[line-id]] [--qrcode[=line-id]] [--type[=line-id],-t[line-id]] [pass-name]
 	        Show existing password and optionally put it on the clipboard.
 	        If put on the clipboard, it will be cleared in $CLIP_TIME seconds.
-	    $PROGRAM grep search-string
+	    $PROGRAM grep [GREPOPTIONS] search-string
 	        Search for password files containing search-string when decrypted.
 	    $PROGRAM insert [--echo,-e | --multiline,-m] [--force,-f] pass-name
 	        Insert new password. Optionally, echo the password back to the console
@@ -346,7 +365,7 @@ cmd_init() {
 				signing_keys+=( --default-key $key )
 			done
 			$GPG "${GPG_OPTS[@]}" "${signing_keys[@]}" --detach-sign "$gpg_id" || die "Could not sign .gpg_id."
-			key="$($GPG --verify --status-fd=1 "$gpg_id.sig" "$gpg_id" 2>/dev/null | sed -n 's/\[GNUPG:\] VALIDSIG [A-F0-9]\{40\} .* \([A-F0-9]\{40\}\)$/\1/p')"
+			key="$($GPG --verify --status-fd=1 "$gpg_id.sig" "$gpg_id" 2>/dev/null | sed -n 's/^\[GNUPG:\] VALIDSIG [A-F0-9]\{40\} .* \([A-F0-9]\{40\}\)$/\1/p')"
 			[[ -n $key ]] || die "Signing of .gpg_id unsuccessful."
 			git_add_file "$gpg_id.sig" "Signing new GPG id with ${key//[$IFS]/,}."
 		fi
@@ -370,13 +389,18 @@ cmd_show() {
 
 	[[ $err -ne 0 || ( $(( qrcode + clip + typeout )) -gt 1 ) ]] && die "Usage: $PROGRAM $COMMAND [--clip[=line-id],-c[line-id]] [--qrcode[=line-id]] [--type[=line-id],-t[line-id]] [pass-name]"
 
+	local pass
 	local path="$1"
 	local passfile="$PREFIX/$path.gpg"
 	check_sneaky_paths "$path"
 	if [[ -f $passfile ]]; then
 		if [[ $clip -eq 0 && $qrcode -eq 0 && $typeout -eq 0 ]]; then
-			$GPG -d "${GPG_OPTS[@]}" "$passfile" || exit $?
+			pass="$($GPG -d "${GPG_OPTS[@]}" "$passfile" | $BASE64)" || exit $?
+			echo "$pass" | $BASE64 -d
 		else
+#			[[ $selected_line =~ ^[0-9]+$ ]] || die "Clip location '$selected_line' is not a number."
+#			pass="$($GPG -d "${GPG_OPTS[@]}" "$passfile" | tail -n +${selected_line} | head -n 1)" || exit $?
+#			[[ -n $pass ]] || die "There is no password to put on the clipboard at line ${selected_line}."
 			local pass="$($GPG -d "${GPG_OPTS[@]}" "$passfile")"
 			[[ -n $pass ]] || die "Failed to read password from $passfile"
 
@@ -426,10 +450,10 @@ cmd_find() {
 }
 
 cmd_grep() {
-	[[ $# -ne 1 ]] && die "Usage: $PROGRAM $COMMAND search-string"
-	local search="$1" passfile grepresults
+	[[ $# -lt 1 ]] && die "Usage: $PROGRAM $COMMAND [GREPOPTIONS] search-string"
+	local passfile grepresults
 	while read -r -d "" passfile; do
-		grepresults="$($GPG -d "${GPG_OPTS[@]}" "$passfile" | grep --color=always "$search")"
+		grepresults="$($GPG -d "${GPG_OPTS[@]}" "$passfile" | grep --color=always "$@")"
 		[[ $? -ne 0 ]] && continue
 		passfile="${passfile%.gpg}"
 		passfile="${passfile#$PREFIX/}"
@@ -476,7 +500,7 @@ cmd_insert() {
 			read -r -p "Retype password for $path: " -s password_again || exit 1
 			echo
 			if [[ $password == "$password_again" ]]; then
-				$GPG -e "${GPG_RECIPIENT_ARGS[@]}" -o "$passfile" "${GPG_OPTS[@]}" <<<"$password" || die "Password encryption aborted."
+				echo "$password" | $GPG -e "${GPG_RECIPIENT_ARGS[@]}" -o "$passfile" "${GPG_OPTS[@]}" || die "Password encryption aborted."
 				break
 			else
 				die "Error: the entered passwords do not match."
@@ -485,7 +509,7 @@ cmd_insert() {
 	else
 		local password
 		read -r -p "Enter password for $path: " -e password
-		$GPG -e "${GPG_RECIPIENT_ARGS[@]}" -o "$passfile" "${GPG_OPTS[@]}" <<<"$password" || die "Password encryption aborted."
+		echo "$password" | $GPG -e "${GPG_RECIPIENT_ARGS[@]}" -o "$passfile" "${GPG_OPTS[@]}" || die "Password encryption aborted."
 	fi
 	git_add_file "$passfile" "Add given password for $path to store."
 }
@@ -502,7 +526,6 @@ cmd_edit() {
 
 	tmpdir #Defines $SECURE_TMPDIR
 	local tmp_file="$(mktemp -u "$SECURE_TMPDIR/XXXXXX")-${path//\//-}.txt"
-
 
 	local action="Add"
 	if [[ -f $passfile ]]; then
@@ -536,7 +559,8 @@ cmd_generate() {
 	local path="$1"
 	local length="${2:-$GENERATED_LENGTH}"
 	check_sneaky_paths "$path"
-	[[ ! $length =~ ^[0-9]+$ ]] && die "Error: pass-length \"$length\" must be a number."
+	[[ $length =~ ^[0-9]+$ ]] || die "Error: pass-length \"$length\" must be a number."
+	[[ $length -gt 0 ]] || die "Error: pass-length must be greater than zero."
 	mkdir -p -v "$PREFIX/$(dirname -- "$path")"
 	set_gpg_recipients "$(dirname -- "$path")"
 	local passfile="$PREFIX/$path.gpg"
@@ -547,10 +571,10 @@ cmd_generate() {
 	read -r -n $length pass < <(LC_ALL=C tr -dc "$characters" < /dev/urandom)
 	[[ ${#pass} -eq $length ]] || die "Could not generate password from /dev/urandom."
 	if [[ $inplace -eq 0 ]]; then
-		$GPG -e "${GPG_RECIPIENT_ARGS[@]}" -o "$passfile" "${GPG_OPTS[@]}" <<<"$pass" || die "Password encryption aborted."
+		echo "$pass" | $GPG -e "${GPG_RECIPIENT_ARGS[@]}" -o "$passfile" "${GPG_OPTS[@]}" || die "Password encryption aborted."
 	else
 		local passfile_temp="${passfile}.tmp.${RANDOM}.${RANDOM}.${RANDOM}.${RANDOM}.--"
-		if $GPG -d "${GPG_OPTS[@]}" "$passfile" | sed $'1c \\\n'"$(sed 's/[\/&]/\\&/g' <<<"$pass")"$'\n' | $GPG -e "${GPG_RECIPIENT_ARGS[@]}" -o "$passfile_temp" "${GPG_OPTS[@]}"; then
+		if { echo "$pass"; $GPG -d "${GPG_OPTS[@]}" "$passfile" | tail -n +2; } | $GPG -e "${GPG_RECIPIENT_ARGS[@]}" -o "$passfile_temp" "${GPG_OPTS[@]}"; then
 			mv "$passfile_temp" "$passfile"
 		else
 			rm -f "$passfile_temp"
@@ -566,7 +590,7 @@ cmd_generate() {
 	elif [[ $qrcode -eq 1 ]]; then
 		qrcode "$pass" "$path"
 	else
-		printf "\e[1m\e[37mThe generated password for \e[4m%s\e[24m is:\e[0m\n\e[1m\e[93m%s\e[0m\n" "$path" "$pass"
+		printf "\e[1mThe generated password for \e[4m%s\e[24m is:\e[0m\n\e[1m\e[93m%s\e[0m\n" "$path" "$pass"
 	fi
 }
 
